@@ -1,0 +1,31 @@
+# Build directories
+build/
+out/
+cmake-build-*/
+
+# CMake & CTest artifacts
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+CTestTestfile.cmake
+compile_commands.json
+Testing/
+
+# IDE & language server caches
+.cache/
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Compiled binaries & object files
+*.exe
+*.out
+*.app
+*.o
+*.obj
+*.a
+*.lib
+*.so
+*.dylib
+*.dll
