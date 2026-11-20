@@ -77,6 +77,7 @@ Options (default `ON` when TensAxon is the top-level project):
 | --- | --- |
 | `TENSAXON_BUILD_TESTS` | Build the unit tests |
 | `TENSAXON_BUILD_EXAMPLES` | Build the examples |
+| `TENSAXON_ENABLE_SANITIZERS` | Enable AddressSanitizer and UndefinedBehaviorSanitizer |
 
 ## Using in Your Project
 

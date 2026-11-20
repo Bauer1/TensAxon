@@ -6,8 +6,42 @@ on:
     tags: [ 'v*' ]
   pull_request:
     branches: [ main ]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
+  format-and-lint:
+    name: Format & Static Analysis
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install clang-format and clang-tidy
+        run: sudo apt-get update && sudo apt-get install -y clang-format clang-tidy
+
+      - name: Check code formatting (clang-format)
+        run: |
+          find include tests examples -type f \( -name '*.hpp' -o -name '*.cpp' \) \
+            -exec clang-format --dry-run --Werror {} +
+
+      - name: Configure CMake for clang-tidy
+        env:
+          CC: clang
+          CXX: clang++
+        run: >
+          cmake -S . -B build
+          -DCMAKE_BUILD_TYPE=Debug
+          -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+          -DTENSAXON_BUILD_TESTS=ON
+          -DTENSAXON_BUILD_EXAMPLES=ON
+
+      - name: Run static analysis (clang-tidy)
+        run: clang-tidy -p build tests/tests.cpp examples/basic.cpp
+
   build-and-test:
     name: ${{ matrix.name }}
     runs-on: ${{ matrix.os }}
@@ -15,20 +49,50 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - name: Ubuntu (GCC)
+          - name: Ubuntu (GCC Release)
             os: ubuntu-latest
             cc: gcc
             cxx: g++
-          - name: Ubuntu (Clang)
+            build_type: Release
+            sanitizers: OFF
+          - name: Ubuntu (GCC Debug + Sanitizers)
+            os: ubuntu-latest
+            cc: gcc
+            cxx: g++
+            build_type: Debug
+            sanitizers: ON
+          - name: Ubuntu (Clang Release)
             os: ubuntu-latest
             cc: clang
             cxx: clang++
-          - name: macOS (AppleClang)
+            build_type: Release
+            sanitizers: OFF
+          - name: Ubuntu (Clang Debug + Sanitizers)
+            os: ubuntu-latest
+            cc: clang
+            cxx: clang++
+            build_type: Debug
+            sanitizers: ON
+          - name: macOS (AppleClang Release)
             os: macos-latest
             cc: clang
             cxx: clang++
-          - name: Windows (MSVC)
+            build_type: Release
+            sanitizers: OFF
+          - name: macOS (AppleClang Debug + Sanitizers)
+            os: macos-latest
+            cc: clang
+            cxx: clang++
+            build_type: Debug
+            sanitizers: ON
+          - name: Windows (MSVC Release)
             os: windows-latest
+            build_type: Release
+            sanitizers: OFF
+          - name: Windows (MSVC Debug)
+            os: windows-latest
+            build_type: Debug
+            sanitizers: OFF
 
     steps:
       - name: Checkout repository
@@ -39,14 +103,37 @@ jobs:
         env:
           CC: ${{ matrix.cc }}
           CXX: ${{ matrix.cxx }}
-        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DTENSAXON_BUILD_TESTS=ON -DTENSAXON_BUILD_EXAMPLES=ON
+        run: >
+          cmake -S . -B build
+          -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
+          -DTENSAXON_BUILD_TESTS=ON
+          -DTENSAXON_BUILD_EXAMPLES=ON
+          -DTENSAXON_ENABLE_SANITIZERS=${{ matrix.sanitizers }}
 
       - name: Configure CMake (Windows)
         if: runner.os == 'Windows'
-        run: cmake -S . -B build -DTENSAXON_BUILD_TESTS=ON -DTENSAXON_BUILD_EXAMPLES=ON
+        run: >
+          cmake -S . -B build
+          -DTENSAXON_BUILD_TESTS=ON
+          -DTENSAXON_BUILD_EXAMPLES=ON
+          -DTENSAXON_ENABLE_SANITIZERS=${{ matrix.sanitizers }}
 
       - name: Build
-        run: cmake --build build --config Release
+        run: cmake --build build --config ${{ matrix.build_type }}
 
       - name: Run unit tests
-        run: ctest --test-dir build -C Release --output-on-failure
+        env:
+          ASAN_OPTIONS: detect_leaks=1:halt_on_error=1
+          UBSAN_OPTIONS: print_stacktrace=1:halt_on_error=1
+        run: ctest --test-dir build -C ${{ matrix.build_type }} --output-on-failure
+
+      - name: Run example binary (Unix)
+        if: runner.os != 'Windows'
+        run: ./build/examples/tensaxon_example
+
+      - name: Run example binary (Windows)
+        if: runner.os == 'Windows'
+        run: .\build\examples\${{ matrix.build_type }}\tensaxon_example.exe
+
+      - name: Verify CMake install
+        run: cmake --install build --config ${{ matrix.build_type }} --prefix "${{ runner.temp }}/tensaxon-install"

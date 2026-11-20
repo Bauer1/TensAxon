@@ -16,9 +16,7 @@ void print(const char* name, const Matrix<T, R, C>& m) {
 
 int main() {
     // --- Linear system -------------------------------------------------------
-    Mat3<double> A{{ 2.0,  1.0, -1.0,
-                    -3.0, -1.0,  2.0,
-                    -2.0,  1.0,  2.0}};
+    Mat3<double> A{{2.0, 1.0, -1.0, -3.0, -1.0, 2.0, -2.0, 1.0, 2.0}};
     Vec3<double> b{{8.0, -11.0, -3.0}};
 
     if (auto x = solve(A, b)) {

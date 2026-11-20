@@ -106,7 +106,8 @@ struct Tensor {
 
     // ----- indexing ---------------------------------------------------------
     /// Row-major flat offset of a multi-index.
-    [[nodiscard]] static constexpr std::size_t offset(const std::array<std::size_t, rank>& idx) noexcept {
+    [[nodiscard]] static constexpr std::size_t offset(
+        const std::array<std::size_t, rank>& idx) noexcept {
         std::size_t off = 0;
         for (std::size_t i = 0; i < rank; ++i) {
             assert(idx[i] < shape[i] && "Tensor index out of range");
@@ -116,7 +117,8 @@ struct Tensor {
     }
 
     /// Multi-index of a row-major flat offset.
-    [[nodiscard]] static constexpr std::array<std::size_t, rank> unravel(std::size_t flat) noexcept {
+    [[nodiscard]] static constexpr std::array<std::size_t, rank> unravel(
+        std::size_t flat) noexcept {
         assert(flat < size && "Tensor flat index out of range");
         std::array<std::size_t, rank> idx{};
         for (std::size_t i = rank; i-- > 0;) {
@@ -141,7 +143,8 @@ struct Tensor {
     [[nodiscard]] constexpr T& operator[](const std::array<std::size_t, rank>& idx) noexcept {
         return data[offset(idx)];
     }
-    [[nodiscard]] constexpr const T& operator[](const std::array<std::size_t, rank>& idx) const noexcept {
+    [[nodiscard]] constexpr const T& operator[](
+        const std::array<std::size_t, rank>& idx) const noexcept {
         return data[offset(idx)];
     }
 
@@ -259,12 +262,14 @@ struct Tensor {
 
 // ----- element-wise free operators -------------------------------------------
 template <typename T, std::size_t... D>
-[[nodiscard]] constexpr Tensor<T, D...> operator+(Tensor<T, D...> lhs, const Tensor<T, D...>& rhs) noexcept {
+[[nodiscard]] constexpr Tensor<T, D...> operator+(Tensor<T, D...> lhs,
+                                                  const Tensor<T, D...>& rhs) noexcept {
     return lhs += rhs;
 }
 
 template <typename T, std::size_t... D>
-[[nodiscard]] constexpr Tensor<T, D...> operator-(Tensor<T, D...> lhs, const Tensor<T, D...>& rhs) noexcept {
+[[nodiscard]] constexpr Tensor<T, D...> operator-(Tensor<T, D...> lhs,
+                                                  const Tensor<T, D...>& rhs) noexcept {
     return lhs -= rhs;
 }
 
@@ -291,7 +296,8 @@ template <typename T, std::size_t... D>
 
 /// Element-wise (Hadamard) product.
 template <typename T, std::size_t... D>
-[[nodiscard]] constexpr Tensor<T, D...> hadamard(Tensor<T, D...> lhs, const Tensor<T, D...>& rhs) noexcept {
+[[nodiscard]] constexpr Tensor<T, D...> hadamard(Tensor<T, D...> lhs,
+                                                 const Tensor<T, D...>& rhs) noexcept {
     for (std::size_t i = 0; i < lhs.size; ++i) lhs.data[i] *= rhs.data[i];
     return lhs;
 }
@@ -301,7 +307,7 @@ template <typename T, std::size_t... D>
 /// outer(Tensor<T, A...>, Tensor<T, B...>) -> Tensor<T, A..., B...>
 template <typename T, std::size_t... A, std::size_t... B>
 [[nodiscard]] constexpr Tensor<T, A..., B...> outer(const Tensor<T, A...>& a,
-                                                   const Tensor<T, B...>& b) noexcept {
+                                                    const Tensor<T, B...>& b) noexcept {
     Tensor<T, A..., B...> r{};
     constexpr std::size_t nb = Tensor<T, B...>::size;
     for (std::size_t i = 0; i < a.size; ++i)
@@ -325,8 +331,9 @@ template <std::size_t AxisA, std::size_t AxisB, typename T, std::size_t... A, st
     static_assert(TA::shape[AxisA] == TB::shape[AxisB],
                   "contract: contracted axes must have the same extent");
 
-    using Result = typename detail::concat_tensor<T, typename detail::drop_axis<AxisA, A...>::type,
-                                                  typename detail::drop_axis<AxisB, B...>::type>::type;
+    using Result =
+        typename detail::concat_tensor<T, typename detail::drop_axis<AxisA, A...>::type,
+                                       typename detail::drop_axis<AxisB, B...>::type>::type;
 
     constexpr std::size_t K = TA::shape[AxisA];
     constexpr std::size_t free_a = TA::size / K;
@@ -338,7 +345,8 @@ template <std::size_t AxisA, std::size_t AxisB, typename T, std::size_t... A, st
     for (std::size_t i = 0; i < free_a; ++i) {
         const std::size_t base_a = detail::offset_skipping_axis(TA::shape, TA::strides, AxisA, i);
         for (std::size_t j = 0; j < free_b; ++j) {
-            const std::size_t base_b = detail::offset_skipping_axis(TB::shape, TB::strides, AxisB, j);
+            const std::size_t base_b =
+                detail::offset_skipping_axis(TB::shape, TB::strides, AxisB, j);
             T sum{0};
             for (std::size_t k = 0; k < K; ++k)
                 sum += a.data[base_a + k * stride_a] * b.data[base_b + k * stride_b];

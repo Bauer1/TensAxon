@@ -19,6 +19,17 @@ cmake --build build
 ctest --test-dir build --output-on-failure
 ```
 
+To run with AddressSanitizer / UndefinedBehaviorSanitizer and check formatting / static analysis:
+
+```bash
+cmake -S . -B build-san -DCMAKE_BUILD_TYPE=Debug -DTENSAXON_ENABLE_SANITIZERS=ON
+cmake --build build-san
+ctest --test-dir build-san --output-on-failure
+
+find include tests examples -type f \( -name '*.hpp' -o -name '*.cpp' \) -exec clang-format --dry-run --Werror {} +
+clang-tidy -p build tests/tests.cpp examples/basic.cpp
+```
+
 ## Submitting Changes
 
 1. **Fork** the repository and create a new branch from `main`.

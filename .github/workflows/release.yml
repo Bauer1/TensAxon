@@ -1,0 +1,56 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Build & Publish Release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Configure & run verification tests
+        run: |
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DTENSAXON_BUILD_TESTS=ON -DTENSAXON_BUILD_EXAMPLES=ON
+          cmake --build build
+          ctest --test-dir build --output-on-failure
+
+      - name: Package header-only distribution archives
+        run: |
+          VERSION="${GITHUB_REF_NAME}"
+          PKG_DIR="tensaxon-${VERSION}"
+          mkdir -p "dist/${PKG_DIR}"
+          cp -r include LICENSE README.md CHANGELOG.md CMakeLists.txt "dist/${PKG_DIR}/"
+          tar -czf "tensaxon-${VERSION}-headers.tar.gz" -C dist "${PKG_DIR}"
+          (cd dist && zip -rq "../tensaxon-${VERSION}-headers.zip" "${PKG_DIR}")
+          sha256sum "tensaxon-${VERSION}-headers.tar.gz" "tensaxon-${VERSION}-headers.zip" > SHA256SUMS.txt
+
+      - name: Extract release notes from CHANGELOG.md
+        id: changelog
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          awk -v ver="$VERSION" '
+            $0 ~ "^## \\[" ver "\\]" { found=1; next }
+            found && /^## \[/ { exit }
+            found { print }
+          ' CHANGELOG.md > release_notes.md
+          if [ ! -s release_notes.md ]; then
+            echo "Release ${GITHUB_REF_NAME}" > release_notes.md
+          fi
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          body_path: release_notes.md
+          generate_release_notes: true
+          files: |
+            tensaxon-${{ github.ref_name }}-headers.tar.gz
+            tensaxon-${{ github.ref_name }}-headers.zip
+            SHA256SUMS.txt

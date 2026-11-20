@@ -22,23 +22,23 @@ bool approx_equal(T a, T b, T eps = static_cast<T>(1e-5)) {
 }  // namespace
 
 // Variadic so that template arguments containing commas need no extra parens.
-#define CHECK(...)                                                                  \
-    do {                                                                            \
-        if (!(__VA_ARGS__)) {                                                       \
-            ++g_failures;                                                           \
-            std::cerr << "  " << __FILE__ << ':' << __LINE__                        \
-                      << ": CHECK(" #__VA_ARGS__ ") failed\n";                      \
-        }                                                                           \
+#define CHECK(...)                                             \
+    do {                                                       \
+        if (!(__VA_ARGS__)) {                                  \
+            ++g_failures;                                      \
+            std::cerr << "  " << __FILE__ << ':' << __LINE__   \
+                      << ": CHECK(" #__VA_ARGS__ ") failed\n"; \
+        }                                                      \
     } while (0)
 
-#define CHECK_NEAR(a, b, ...) CHECK(approx_equal((a), (b) __VA_OPT__(, ) __VA_ARGS__))
+#define CHECK_NEAR(a, b, ...) CHECK(approx_equal((a), (b)__VA_OPT__(, ) __VA_ARGS__))
 
 #define TEST_CASE(name) static void name()
-#define RUN_TEST(name)                                                    \
-    do {                                                                  \
-        const int before = g_failures;                                    \
-        std::cout << "[ RUN      ] " #name "\n";                          \
-        name();                                                           \
+#define RUN_TEST(name)                                                                            \
+    do {                                                                                          \
+        const int before = g_failures;                                                            \
+        std::cout << "[ RUN      ] " #name "\n";                                                  \
+        name();                                                                                   \
         std::cout << (g_failures == before ? "[       OK ] " : "[  FAILED  ] ") << #name << '\n'; \
     } while (0)
 
@@ -47,9 +47,7 @@ bool approx_equal(T a, T b, T eps = static_cast<T>(1e-5)) {
 // -----------------------------------------------------------------------------
 namespace compile_time {
 
-constexpr Mat3<double> M{{2.0, 0.0, 0.0,
-                          0.0, 3.0, 0.0,
-                          0.0, 0.0, 4.0}};
+constexpr Mat3<double> M{{2.0, 0.0, 0.0, 0.0, 3.0, 0.0, 0.0, 0.0, 4.0}};
 static_assert(M.determinant() == 24.0);
 static_assert(Mat3<int>::identity().trace() == 3);
 static_assert(Vec3<int>{{1, 0, 0}}.cross(Vec3<int>{{0, 1, 0}}) == Vec3<int>{{0, 0, 1}});
@@ -57,7 +55,8 @@ static_assert(Vec2<double>{{3.0, 4.0}}.norm() == 5.0);
 static_assert(std::is_same_v<decltype(Matrix<int, 2, 3>{}.transpose()), Matrix<int, 3, 2>>);
 static_assert(Tensor<int, 2, 3, 4>::size == 24);
 static_assert(Tensor<int, 2, 3, 4>::strides == std::array<std::size_t, 3>{12, 4, 1});
-static_assert(std::is_same_v<decltype(Tensor<int, 2, 3, 4>{}.permute<2, 0, 1>()), Tensor<int, 4, 2, 3>>);
+static_assert(
+    std::is_same_v<decltype(Tensor<int, 2, 3, 4>{}.permute<2, 0, 1>()), Tensor<int, 4, 2, 3>>);
 static_assert(contract<0, 0>(Tensor<int, 3>{{1, 2, 3}}, Tensor<int, 3>{{4, 5, 6}}).value() == 32);
 
 }  // namespace compile_time
@@ -116,8 +115,7 @@ TEST_CASE(test_matrix_identity) {
 
 TEST_CASE(test_matrix_transpose_non_square) {
     // Regression: transpose() used the wrong result type (failed for non-square).
-    Matrix<int, 2, 3> A{{1, 2, 3,
-                         4, 5, 6}};
+    Matrix<int, 2, 3> A{{1, 2, 3, 4, 5, 6}};
     Matrix<int, 3, 2> At = A.transpose();
     CHECK(At(0, 0) == 1);
     CHECK(At(0, 1) == 4);
@@ -138,11 +136,8 @@ TEST_CASE(test_matrix_add_sub) {
 }
 
 TEST_CASE(test_matrix_multiplication) {
-    Matrix<float, 2, 3> A{{1.0f, 2.0f, 3.0f,
-                           4.0f, 5.0f, 6.0f}};
-    Matrix<float, 3, 2> B{{7.0f, 8.0f,
-                           9.0f, 1.0f,
-                           2.0f, 3.0f}};
+    Matrix<float, 2, 3> A{{1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f}};
+    Matrix<float, 3, 2> B{{7.0f, 8.0f, 9.0f, 1.0f, 2.0f, 3.0f}};
     auto C = A * B;
     CHECK_NEAR(C(0, 0), 31.0f);
     CHECK_NEAR(C(0, 1), 19.0f);
@@ -151,8 +146,7 @@ TEST_CASE(test_matrix_multiplication) {
 }
 
 TEST_CASE(test_matrix_vector_multiplication) {
-    Matrix<float, 2, 3> A{{1.0f, -1.0f, 2.0f,
-                           0.0f,  3.0f, 4.0f}};
+    Matrix<float, 2, 3> A{{1.0f, -1.0f, 2.0f, 0.0f, 3.0f, 4.0f}};
     Vector<float, 3> x{{2.0f, 1.0f, -1.0f}};
     auto y = A * x;
     CHECK_NEAR(y[0], -1.0f);
@@ -160,28 +154,21 @@ TEST_CASE(test_matrix_vector_multiplication) {
 }
 
 TEST_CASE(test_matrix_row_col_trace) {
-    Mat3<int> A{{1, 2, 3,
-                 4, 5, 6,
-                 7, 8, 9}};
+    Mat3<int> A{{1, 2, 3, 4, 5, 6, 7, 8, 9}};
     CHECK(A.row(1) == (Vec3<int>{{4, 5, 6}}));
     CHECK(A.col(2) == (Vec3<int>{{3, 6, 9}}));
     CHECK(A.trace() == 15);
 }
 
 TEST_CASE(test_matrix_determinants) {
-    Mat2<double> M2{{3.0, 8.0,
-                     4.0, 6.0}};
+    Mat2<double> M2{{3.0, 8.0, 4.0, 6.0}};
     CHECK_NEAR(M2.determinant(), -14.0);
 
-    Mat3<double> M3{{6.0,  1.0, 1.0,
-                     4.0, -2.0, 5.0,
-                     2.0,  8.0, 7.0}};
+    Mat3<double> M3{{6.0, 1.0, 1.0, 4.0, -2.0, 5.0, 2.0, 8.0, 7.0}};
     CHECK_NEAR(M3.determinant(), -306.0);
 
-    Mat4<double> M4{{1.0, 2.0, 3.0, 4.0,
-                     5.0, 6.0, 7.0, 8.0,
-                     2.0, 6.0, 4.0, 8.0,
-                     3.0, 1.0, 1.0, 2.0}};
+    Mat4<double> M4{
+        {1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 2.0, 6.0, 4.0, 8.0, 3.0, 1.0, 1.0, 2.0}};
     CHECK_NEAR(M4.determinant(), 72.0);
 }
 
@@ -195,38 +182,31 @@ static bool is_identity(const Matrix<T, N, N>& m, T eps) {
 
 TEST_CASE(test_matrix_inverse_2x2) {
     // Regression: 2x2 inverse had wrong signs and a wrong diagonal entry.
-    Mat2<double> A{{4.0, 7.0,
-                    2.0, 6.0}};
+    Mat2<double> A{{4.0, 7.0, 2.0, 6.0}};
     auto inv = A.inverse();
     CHECK(inv.has_value());
-    CHECK_NEAR((*inv)(0, 0),  0.6);
+    CHECK_NEAR((*inv)(0, 0), 0.6);
     CHECK_NEAR((*inv)(0, 1), -0.7);
     CHECK_NEAR((*inv)(1, 0), -0.2);
-    CHECK_NEAR((*inv)(1, 1),  0.4);
+    CHECK_NEAR((*inv)(1, 1), 0.4);
     CHECK(is_identity(A * *inv, 1e-12));
     CHECK(!(Mat2<double>{{1.0, 2.0, 2.0, 4.0}}).inverse().has_value());
 }
 
 TEST_CASE(test_matrix_inverse_3x3_and_singular) {
-    Mat3<float> A{{1.0f, 2.0f, 3.0f,
-                   0.0f, 1.0f, 4.0f,
-                   5.0f, 6.0f, 0.0f}};
+    Mat3<float> A{{1.0f, 2.0f, 3.0f, 0.0f, 1.0f, 4.0f, 5.0f, 6.0f, 0.0f}};
     auto inv = A.inverse();
     CHECK(inv.has_value());
     CHECK(is_identity(A * *inv, 1e-4f));
 
-    Mat3<float> singular{{1.0f, 2.0f, 3.0f,
-                          2.0f, 4.0f, 6.0f,
-                          1.0f, 1.0f, 1.0f}};
+    Mat3<float> singular{{1.0f, 2.0f, 3.0f, 2.0f, 4.0f, 6.0f, 1.0f, 1.0f, 1.0f}};
     CHECK(!singular.inverse().has_value());
     CHECK_NEAR(singular.determinant(), 0.0f);
 }
 
 TEST_CASE(test_matrix_inverse_4x4) {
-    Mat4<double> A{{1.0, 2.0, 3.0, 4.0,
-                    5.0, 6.0, 7.0, 8.0,
-                    2.0, 6.0, 4.0, 8.0,
-                    3.0, 1.0, 1.0, 2.0}};
+    Mat4<double> A{
+        {1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 2.0, 6.0, 4.0, 8.0, 3.0, 1.0, 1.0, 2.0}};
     auto inv = A.inverse();
     CHECK(inv.has_value());
     CHECK(is_identity(A * *inv, 1e-9));
@@ -237,9 +217,7 @@ TEST_CASE(test_matrix_inverse_4x4) {
 // SOLVER
 // -----------------------------------------------------------------------------
 TEST_CASE(test_linear_solver) {
-    Mat3<double> A{{ 2.0,  1.0, -1.0,
-                    -3.0, -1.0,  2.0,
-                    -2.0,  1.0,  2.0}};
+    Mat3<double> A{{2.0, 1.0, -1.0, -3.0, -1.0, 2.0, -2.0, 1.0, 2.0}};
     Vec3<double> b{{8.0, -11.0, -3.0}};
 
     auto x = solve(A, b);
@@ -249,8 +227,7 @@ TEST_CASE(test_linear_solver) {
     CHECK_NEAR((*x)[2], -1.0);
     CHECK_NEAR((A * *x - b).norm(), 0.0, 1e-6);
 
-    Mat2<double> degA{{1.0, 2.0,
-                       2.0, 4.0}};
+    Mat2<double> degA{{1.0, 2.0, 2.0, 4.0}};
     CHECK(!solve(degA, Vec2<double>{{1.0, 2.0}}).has_value());
 }
 
@@ -283,8 +260,7 @@ TEST_CASE(test_tensor_elementwise) {
 }
 
 TEST_CASE(test_tensor_reshape_permute) {
-    Tensor<int, 2, 3> t{{1, 2, 3,
-                         4, 5, 6}};
+    Tensor<int, 2, 3> t{{1, 2, 3, 4, 5, 6}};
     auto r = t.reshape<3, 2>();
     CHECK(r(2, 1) == 6);
     CHECK(r(1, 0) == 3);
@@ -310,11 +286,8 @@ TEST_CASE(test_tensor_outer_and_contract) {
     CHECK(o(0, 1) == 4);
 
     // contract<1,0> on rank-2 tensors == matrix product
-    Matrix<double, 2, 3> A{{1.0, 2.0, 3.0,
-                            4.0, 5.0, 6.0}};
-    Matrix<double, 3, 2> B{{7.0, 8.0,
-                            9.0, 1.0,
-                            2.0, 3.0}};
+    Matrix<double, 2, 3> A{{1.0, 2.0, 3.0, 4.0, 5.0, 6.0}};
+    Matrix<double, 3, 2> B{{7.0, 8.0, 9.0, 1.0, 2.0, 3.0}};
     auto C = contract<1, 0>(to_tensor(A), to_tensor(B));
     CHECK(to_matrix(C) == A * B);
 

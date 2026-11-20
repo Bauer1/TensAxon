@@ -124,9 +124,9 @@ struct Matrix {
         } else if constexpr (N == 2) {
             return m(0, 0) * m(1, 1) - m(0, 1) * m(1, 0);
         } else if constexpr (N == 3) {
-            return m(0, 0) * (m(1, 1) * m(2, 2) - m(1, 2) * m(2, 1))
-                 - m(0, 1) * (m(1, 0) * m(2, 2) - m(1, 2) * m(2, 0))
-                 + m(0, 2) * (m(1, 0) * m(2, 1) - m(1, 1) * m(2, 0));
+            return m(0, 0) * (m(1, 1) * m(2, 2) - m(1, 2) * m(2, 1)) -
+                   m(0, 1) * (m(1, 0) * m(2, 2) - m(1, 2) * m(2, 0)) +
+                   m(0, 2) * (m(1, 0) * m(2, 1) - m(1, 1) * m(2, 0));
         } else {
             static_assert(std::floating_point<T>,
                           "determinant() for N >= 4 requires a floating-point type");
@@ -153,7 +153,8 @@ struct Matrix {
     // ----- inverse ----------------------------------------------------------
     /// Returns std::nullopt if the matrix is singular (|pivot| <= eps).
     /// Closed form for N <= 3, Gauss-Jordan elimination otherwise.
-    [[nodiscard]] constexpr std::optional<Matrix> inverse(T eps = detail::default_eps<T>) const noexcept
+    [[nodiscard]] constexpr std::optional<Matrix> inverse(
+        T eps = detail::default_eps<T>) const noexcept
         requires(Rows == Cols && std::floating_point<T>)
     {
         constexpr std::size_t N = Rows;
@@ -166,8 +167,8 @@ struct Matrix {
             const T det = determinant();
             if (detail::abs(det) <= eps) return std::nullopt;
             const T inv_det = T{1} / det;
-            return Matrix{{ m(1, 1) * inv_det, -m(0, 1) * inv_det,
-                           -m(1, 0) * inv_det,  m(0, 0) * inv_det}};
+            return Matrix{
+                {m(1, 1) * inv_det, -m(0, 1) * inv_det, -m(1, 0) * inv_det, m(0, 0) * inv_det}};
         } else if constexpr (N == 3) {
             const T a00 = m(0, 0), a01 = m(0, 1), a02 = m(0, 2);
             const T a10 = m(1, 0), a11 = m(1, 1), a12 = m(1, 2);
@@ -175,9 +176,15 @@ struct Matrix {
 
             // Adjugate (transposed cofactor matrix).
             const Matrix adj{{
-                 (a11 * a22 - a12 * a21), -(a01 * a22 - a02 * a21),  (a01 * a12 - a02 * a11),
-                -(a10 * a22 - a12 * a20),  (a00 * a22 - a02 * a20), -(a00 * a12 - a02 * a10),
-                 (a10 * a21 - a11 * a20), -(a00 * a21 - a01 * a20),  (a00 * a11 - a01 * a10),
+                (a11 * a22 - a12 * a21),
+                -(a01 * a22 - a02 * a21),
+                (a01 * a12 - a02 * a11),
+                -(a10 * a22 - a12 * a20),
+                (a00 * a22 - a02 * a20),
+                -(a00 * a12 - a02 * a10),
+                (a10 * a21 - a11 * a20),
+                -(a00 * a21 - a01 * a20),
+                (a00 * a11 - a01 * a10),
             }};
 
             const T det = a00 * adj(0, 0) + a01 * adj(1, 0) + a02 * adj(2, 0);
@@ -231,12 +238,14 @@ struct Matrix {
 
 // ----- free operators ---------------------------------------------------------
 template <typename T, std::size_t R, std::size_t C>
-[[nodiscard]] constexpr Matrix<T, R, C> operator+(Matrix<T, R, C> lhs, const Matrix<T, R, C>& rhs) noexcept {
+[[nodiscard]] constexpr Matrix<T, R, C> operator+(Matrix<T, R, C> lhs,
+                                                  const Matrix<T, R, C>& rhs) noexcept {
     return lhs += rhs;
 }
 
 template <typename T, std::size_t R, std::size_t C>
-[[nodiscard]] constexpr Matrix<T, R, C> operator-(Matrix<T, R, C> lhs, const Matrix<T, R, C>& rhs) noexcept {
+[[nodiscard]] constexpr Matrix<T, R, C> operator-(Matrix<T, R, C> lhs,
+                                                  const Matrix<T, R, C>& rhs) noexcept {
     return lhs -= rhs;
 }
 
@@ -318,11 +327,17 @@ template <std::floating_point T, std::size_t N>
 }
 
 // ----- aliases ----------------------------------------------------------------
-template <typename T> using Vec2 = Vector<T, 2>;
-template <typename T> using Vec3 = Vector<T, 3>;
-template <typename T> using Vec4 = Vector<T, 4>;
-template <typename T> using Mat2 = Matrix<T, 2, 2>;
-template <typename T> using Mat3 = Matrix<T, 3, 3>;
-template <typename T> using Mat4 = Matrix<T, 4, 4>;
+template <typename T>
+using Vec2 = Vector<T, 2>;
+template <typename T>
+using Vec3 = Vector<T, 3>;
+template <typename T>
+using Vec4 = Vector<T, 4>;
+template <typename T>
+using Mat2 = Matrix<T, 2, 2>;
+template <typename T>
+using Mat3 = Matrix<T, 3, 3>;
+template <typename T>
+using Mat4 = Matrix<T, 4, 4>;
 
 }  // namespace tensaxon

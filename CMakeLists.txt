@@ -17,6 +17,7 @@ endif()
 
 option(TENSAXON_BUILD_TESTS    "Build TensAxon unit tests" ${TENSAXON_IS_TOP_LEVEL})
 option(TENSAXON_BUILD_EXAMPLES "Build TensAxon examples"   ${TENSAXON_IS_TOP_LEVEL})
+option(TENSAXON_ENABLE_SANITIZERS "Enable AddressSanitizer and UndefinedBehaviorSanitizer" OFF)
 
 # ----- library target ---------------------------------------------------------
 add_library(tensaxon INTERFACE)
