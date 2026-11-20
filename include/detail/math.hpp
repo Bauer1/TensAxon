@@ -42,7 +42,7 @@ template <std::floating_point T>
 }
 
 /// Default tolerance used to detect singular (near-zero) pivots.
-template <std::floating_point T>
+template <typename T>
 inline constexpr T default_eps = static_cast<T>(1e-7);
 
 }  // namespace detail
