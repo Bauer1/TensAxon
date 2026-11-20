@@ -1,78 +1,100 @@
-# TensAxon (`linalg`)
+# TensAxon
 
-A lightweight, header-only C++20 linear algebra library providing fixed-size, stack-allocated `Vector` and `Matrix` types with `constexpr` support, basic matrix decompositions/operations, and a Gaussian elimination linear solver.
+A lightweight, **header-only C++20** library for linear algebra and N-dimensional tensors. All types are fixed-size and stack-allocated, their shapes are part of the type (so dimension mismatches are **compile errors**), and the whole API is `constexpr`.
+
+```cpp
+#include <tensaxon.hpp>
+using namespace tensaxon;
+
+Mat3<double> A{{ 2, 1, -1,   -3, -1, 2,   -2, 1, 2 }};
+Vec3<double> b{{ 8, -11, -3 }};
+
+auto x = solve(A, b);                              // std::optional -> {2, 3, -1}
+auto T = outer(to_tensor(b), to_tensor(b));        // Tensor<double, 3, 3>
+auto y = contract<1, 0>(to_tensor(A), to_tensor(b)); // == A * b
+```
 
 ## Features
 
-- **Header-only** (`INTERFACE` CMake library target `LinAlg::linalg`)
-- **C++20 `constexpr` API** for compile-time and runtime linear algebra
-- **Fixed-size `Vector<T, N>`**:
-  - Element access (`operator[]`)
-  - Arithmetic (`+=`, `-=`, `*=`, `/=`, `+`, `-`, scalar `*`)
-  - `dot()`, `squared_norm()`, `norm()`
-- **Fixed-size `Matrix<T, Rows, Cols>`** (row-major `std::array<T, Rows * Cols>`):
-  - Element access `operator()(r, c)`
-  - `identity()`, `transpose()`
-  - Matrix arithmetic (`+=`, `*=`, `+`, `-`, matrix `*` matrix, matrix `*` vector)
-  - `determinant()` (closed-form for 1×1, 2×2, 3×3; Gaussian elimination with partial pivoting for $N \ge 4$)
-  - `inverse(eps)` returning `std::optional<Matrix<T, Rows, Cols>>` (closed-form for 1×1–3×3; Gauss-Jordan elimination with partial pivoting for $N \ge 4$)
-- **Linear System Solver**:
-  - `solve(A, b, eps)` solving $Ax = b$ via Gaussian elimination with partial pivoting and back-substitution, returning `std::optional<Vector<T, N>>`
+### `Vector<T, N>` — [`vector.hpp`](include/tensaxon/vector.hpp)
+- `+`, `-`, unary `-`, scalar `*` / `/`, compound assignment, `==`
+- `dot()`, `squared_norm()`, `norm()`, `normalized()`, `cross()` (3D only)
+- Factories: `zeros()`, `ones()`, `filled(v)`
+
+### `Matrix<T, Rows, Cols>` — [`matrix.hpp`](include/tensaxon/matrix.hpp)
+- Row-major storage, `m(r, c)` access, `row(i)`, `col(j)`, `swap_rows()`
+- `+`, `-`, unary `-`, scalar `*` / `/`, `==`, matrix × matrix, matrix × vector
+- `identity()`, `transpose()` (any shape), `trace()`
+- `determinant()` — closed form for N ≤ 3, Gaussian elimination with partial pivoting for N ≥ 4
+- `inverse(eps)` → `std::optional<Matrix>` — closed form for N ≤ 3, Gauss–Jordan for N ≥ 4
+- `solve(A, b, eps)` → `std::optional<Vector>` — solves *Ax = b* with partial pivoting
+- Aliases: `Vec2/3/4<T>`, `Mat2/3/4<T>`
+
+### `Tensor<T, Dims...>` — [`tensor.hpp`](include/tensaxon/tensor.hpp)
+- Any rank (including rank-0 scalars): `Tensor<float, 2, 3, 4> t{}; t(1, 2, 3) = 1.0f;`
+- Compile-time `rank`, `size`, `shape`, `strides`; `offset()` / `unravel()` index helpers
+- Element-wise `+`, `-`, scalar `*` / `/`, `hadamard()`, `==`
+- Reductions: `sum()`, `squared_norm()`, `norm()` (Frobenius)
+- Shape ops: `reshape<...>()`, `flatten()`, `permute<axes...>()`, `transpose()` (rank 2)
+- `outer(a, b)` — tensor product, shapes concatenate
+- `contract<AxisA, AxisB>(a, b)` — sums over one shared axis (generalizes dot, mat-vec and mat-mat products)
+- Interop (identical row-major layout): `to_tensor(Vector/Matrix)`, `to_vector()`, `to_matrix()`
 
 ## Project Structure
 
 ```text
 .
-├── CMakeLists.txt          # Root CMake configuration (exports LinAlg::linalg)
+├── CMakeLists.txt
 ├── include/
-│   ├── vector.hpp          # Vector<T, N> implementation
-│   └── matrix.hpp          # Matrix<T, Rows, Cols> and solve() implementation
-├── tests/
-│   ├── CMakeLists.txt      # Unit test target & CTest registration
-│   └── tests.cpp           # Unit tests for Vector, Matrix, and solve()
-├── examples/               # (Reserved for usage examples)
-└── src/                    # (Reserved for source files)
+│   ├── tensaxon.hpp            # umbrella header
+│   └── tensaxon/
+│       ├── detail/math.hpp     # constexpr abs/sqrt, concepts, tolerances
+│       ├── vector.hpp
+│       ├── matrix.hpp          # Matrix + solve()
+│       └── tensor.hpp
+├── tests/                      # unit tests (CTest)
+└── examples/basic.cpp
 ```
 
-## Requirements
+## Building
 
-- CMake 3.20 or higher
-- A C++20 compatible compiler (GCC, Clang, or MSVC)
-
-## Building & Running Tests
+Requires CMake ≥ 3.20 and a C++20 compiler (GCC 10+, Clang 13+, MSVC 19.29+).
 
 ```bash
-cmake -B build
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
 cmake --build build
 ctest --test-dir build --output-on-failure
+./build/examples/tensaxon_example
 ```
 
-## Usage
+Options (default `ON` when TensAxon is the top-level project):
 
-### CMake Integration
+| Option | Description |
+| --- | --- |
+| `TENSAXON_BUILD_TESTS` | Build the unit tests |
+| `TENSAXON_BUILD_EXAMPLES` | Build the examples |
 
-After installing or adding as a subdirectory, link against `LinAlg::linalg`:
+## Using in Your Project
+
+**As a subdirectory / FetchContent:**
 
 ```cmake
-target_link_libraries(your_target PRIVATE LinAlg::linalg)
+add_subdirectory(TensAxon)   # or FetchContent_MakeAvailable(TensAxon)
+target_link_libraries(your_target PRIVATE TensAxon::tensaxon)
 ```
 
-### Example
+**After `cmake --install`:**
 
-```cpp
-#include "vector.hpp"
-#include "matrix.hpp"
-
-int main() {
-    Matrix<double, 3, 3> A{{
-         2.0,  1.0, -1.0,
-        -3.0, -1.0,  2.0,
-        -2.0,  1.0,  2.0
-    }};
-    Vector<double, 3> b{{8.0, -11.0, -3.0}};
-
-    if (auto x = solve(A, b)) {
-        // x = {2.0, 3.0, -1.0}
-    }
-}
+```cmake
+find_package(TensAxon 0.2 REQUIRED)
+target_link_libraries(your_target PRIVATE TensAxon::tensaxon)
 ```
+
+## Notes
+
+- `inverse()`, `solve()`, `norm()` and `determinant()` for N ≥ 4 require a floating-point element type; this is enforced at compile time.
+- Singularity is detected with an absolute pivot tolerance (`eps`, default `1e-7`). Scale your data or pass a custom `eps` if needed.
+
+## License
+
+See [LICENSE](LICENSE).
