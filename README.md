@@ -1,5 +1,9 @@
 # TensAxon
 
+[![CI](https://github.com/Bauer1/TensAxon/actions/workflows/ci.yml/badge.svg)](https://github.com/Bauer1/TensAxon/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![C++20](https://img.shields.io/badge/C%2B%2B-20-blue.svg)](https://en.cppreference.com/w/cpp/20)
+
 A lightweight, **header-only C++20** library for linear algebra and N-dimensional tensors. All types are fixed-size and stack-allocated, their shapes are part of the type (so dimension mismatches are **compile errors**), and the whole API is `constexpr`.
 
 ```cpp
@@ -79,7 +83,14 @@ Options (default `ON` when TensAxon is the top-level project):
 **As a subdirectory / FetchContent:**
 
 ```cmake
-add_subdirectory(TensAxon)   # or FetchContent_MakeAvailable(TensAxon)
+include(FetchContent)
+FetchContent_Declare(
+    TensAxon
+    GIT_REPOSITORY https://github.com/Bauer1/TensAxon.git
+    GIT_TAG        v0.2.0
+)
+FetchContent_MakeAvailable(TensAxon)
+
 target_link_libraries(your_target PRIVATE TensAxon::tensaxon)
 ```
 
