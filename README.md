@@ -16,12 +16,12 @@ auto y = contract<1, 0>(to_tensor(A), to_tensor(b)); // == A * b
 
 ## Features
 
-### `Vector<T, N>` — [`vector.hpp`](include/tensaxon/vector.hpp)
+### `Vector<T, N>` — [`vector.hpp`](include/vector.hpp)
 - `+`, `-`, unary `-`, scalar `*` / `/`, compound assignment, `==`
 - `dot()`, `squared_norm()`, `norm()`, `normalized()`, `cross()` (3D only)
 - Factories: `zeros()`, `ones()`, `filled(v)`
 
-### `Matrix<T, Rows, Cols>` — [`matrix.hpp`](include/tensaxon/matrix.hpp)
+### `Matrix<T, Rows, Cols>` — [`matrix.hpp`](include/matrix.hpp)
 - Row-major storage, `m(r, c)` access, `row(i)`, `col(j)`, `swap_rows()`
 - `+`, `-`, unary `-`, scalar `*` / `/`, `==`, matrix × matrix, matrix × vector
 - `identity()`, `transpose()` (any shape), `trace()`
@@ -30,7 +30,7 @@ auto y = contract<1, 0>(to_tensor(A), to_tensor(b)); // == A * b
 - `solve(A, b, eps)` → `std::optional<Vector>` — solves *Ax = b* with partial pivoting
 - Aliases: `Vec2/3/4<T>`, `Mat2/3/4<T>`
 
-### `Tensor<T, Dims...>` — [`tensor.hpp`](include/tensaxon/tensor.hpp)
+### `Tensor<T, Dims...>` — [`tensor.hpp`](include/tensor.hpp)
 - Any rank (including rank-0 scalars): `Tensor<float, 2, 3, 4> t{}; t(1, 2, 3) = 1.0f;`
 - Compile-time `rank`, `size`, `shape`, `strides`; `offset()` / `unravel()` index helpers
 - Element-wise `+`, `-`, scalar `*` / `/`, `hadamard()`, `==`
@@ -47,11 +47,11 @@ auto y = contract<1, 0>(to_tensor(A), to_tensor(b)); // == A * b
 ├── CMakeLists.txt
 ├── include/
 │   ├── tensaxon.hpp            # umbrella header
-│   └── tensaxon/
-│       ├── detail/math.hpp     # constexpr abs/sqrt, concepts, tolerances
-│       ├── vector.hpp
-│       ├── matrix.hpp          # Matrix + solve()
-│       └── tensor.hpp
+│   ├── vector.hpp
+│   ├── matrix.hpp              # Matrix + solve()
+│   ├── tensor.hpp
+│   └── detail/
+│       └── math.hpp            # constexpr abs/sqrt, concepts, tolerances
 ├── tests/                      # unit tests (CTest)
 └── examples/basic.cpp
 ```
