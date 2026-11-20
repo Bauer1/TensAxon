@@ -34,6 +34,10 @@ auto y = contract<1, 0>(to_tensor(A), to_tensor(b)); // == A * b
 - `solve(A, b, eps)` → `std::optional<Vector>` — solves *Ax = b* with partial pivoting
 - Aliases: `Vec2/3/4<T>`, `Mat2/3/4<T>`
 
+### Decompositions — [`decompositions.hpp`](include/decompositions.hpp)
+- `lu(A)` → `LUResult` — partial-pivoted LU factorization (*PA = LU*) for any shape, with `determinant()`, `is_singular(eps)`, and `solve(b, eps)`
+- `svd(A)` → `SVDResult` — full Singular Value Decomposition (*A = UΣVᵀ*) via one-sided Jacobi, with `sigma_matrix()`, `reconstruct()`, `rank(eps)`, and `pseudoinverse(eps)`
+
 ### `Tensor<T, Dims...>` — [`tensor.hpp`](include/tensor.hpp)
 - Any rank (including rank-0 scalars): `Tensor<float, 2, 3, 4> t{}; t(1, 2, 3) = 1.0f;`
 - Compile-time `rank`, `size`, `shape`, `strides`; `offset()` / `unravel()` index helpers
@@ -53,6 +57,7 @@ auto y = contract<1, 0>(to_tensor(A), to_tensor(b)); // == A * b
 │   ├── tensaxon.hpp            # umbrella header
 │   ├── vector.hpp
 │   ├── matrix.hpp              # Matrix + solve()
+│   ├── decompositions.hpp      # LU and SVD decompositions
 │   ├── tensor.hpp
 │   └── detail/
 │       └── math.hpp            # constexpr abs/sqrt, concepts, tolerances

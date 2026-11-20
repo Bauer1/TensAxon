@@ -59,6 +59,14 @@ static_assert(
     std::is_same_v<decltype(Tensor<int, 2, 3, 4>{}.permute<2, 0, 1>()), Tensor<int, 4, 2, 3>>);
 static_assert(contract<0, 0>(Tensor<int, 3>{{1, 2, 3}}, Tensor<int, 3>{{4, 5, 6}}).value() == 32);
 
+constexpr auto lu_M = lu(M);
+static_assert(lu_M.determinant() == 24.0);
+static_assert(!lu_M.is_singular());
+
+constexpr auto svd_M = svd(M);
+static_assert(svd_M.S[0] == 4.0 && svd_M.S[1] == 3.0 && svd_M.S[2] == 2.0);
+static_assert(svd_M.rank() == 3);
+
 }  // namespace compile_time
 
 // -----------------------------------------------------------------------------
@@ -310,6 +318,124 @@ TEST_CASE(test_tensor_outer_and_contract) {
 }
 
 // -----------------------------------------------------------------------------
+// DECOMPOSITIONS (LU & SVD)
+// -----------------------------------------------------------------------------
+template <typename T, std::size_t R, std::size_t C>
+static void check_matrix_near(const Matrix<T, R, C>& a, const Matrix<T, R, C>& b,
+                              T eps = static_cast<T>(1e-5)) {
+    for (std::size_t r = 0; r < R; ++r)
+        for (std::size_t c = 0; c < C; ++c) CHECK_NEAR(a(r, c), b(r, c), eps);
+}
+
+TEST_CASE(test_lu_decomposition) {
+    // 3x3 requiring pivoting
+    Mat3<double> A{{0.0, 2.0, 3.0, 1.0, 4.0, 5.0, 2.0, 1.0, 1.0}};
+    auto res = lu(A);
+
+    // P * A == L * U
+    check_matrix_near(res.P * A, res.L * res.U);
+
+    // L is unit lower triangular, U is upper triangular
+    for (std::size_t r = 0; r < 3; ++r) {
+        CHECK_NEAR(res.L(r, r), 1.0);
+        for (std::size_t c = r + 1; c < 3; ++c) CHECK_NEAR(res.L(r, c), 0.0);
+        for (std::size_t c = 0; c < r; ++c) CHECK_NEAR(res.U(r, c), 0.0);
+    }
+
+    CHECK_NEAR(res.determinant(), A.determinant());
+    CHECK(!res.is_singular());
+
+    Vec3<double> b{{7.0, 13.0, 4.0}};
+    auto x_lu = res.solve(b);
+    auto x_direct = solve(A, b);
+    CHECK(x_lu.has_value() && x_direct.has_value());
+    for (std::size_t i = 0; i < 3; ++i) CHECK_NEAR((*x_lu)[i], (*x_direct)[i]);
+
+    // 4x4 matrix
+    Mat4<double> A4{{2.0, 1.0, 1.0, 0.0, 4.0, 3.0, 3.0, 1.0, 8.0, 7.0, 9.0, 5.0, 6.0, 7.0, 9.0, 8.0}};
+    auto res4 = lu(A4);
+    check_matrix_near(res4.P * A4, res4.L * res4.U);
+    CHECK_NEAR(res4.determinant(), A4.determinant());
+    Vec4<double> b4{{1.0, 2.0, 3.0, 4.0}};
+    auto x4 = res4.solve(b4);
+    CHECK(x4.has_value());
+    auto Ax4 = A4 * (*x4);
+    for (std::size_t i = 0; i < 4; ++i) CHECK_NEAR(Ax4[i], b4[i]);
+
+    // Singular 3x3
+    Mat3<double> S{{1.0, 2.0, 3.0, 2.0, 4.0, 6.0, 1.0, 1.0, 1.0}};
+    auto res_s = lu(S);
+    check_matrix_near(res_s.P * S, res_s.L * res_s.U);
+    CHECK(res_s.is_singular());
+    CHECK(!res_s.solve(b).has_value());
+
+    // Rectangular 3x2 and 2x3
+    Matrix<double, 3, 2> R32{{1.0, 2.0, 3.0, 4.0, 5.0, 6.0}};
+    auto res32 = lu(R32);
+    check_matrix_near(res32.P * R32, res32.L * res32.U);
+
+    Matrix<double, 2, 3> R23{{1.0, 2.0, 3.0, 4.0, 5.0, 6.0}};
+    auto res23 = lu(R23);
+    check_matrix_near(res23.P * R23, res23.L * res23.U);
+}
+
+TEST_CASE(test_svd_decomposition) {
+    // 3x3 general matrix
+    Mat3<double> A{{1.0, 2.0, 3.0, 0.0, 4.0, 5.0, 1.0, 0.0, 6.0}};
+    auto res = svd(A);
+    check_matrix_near(res.U.transpose() * res.U, Mat3<double>::identity());
+    check_matrix_near(res.V.transpose() * res.V, Mat3<double>::identity());
+    CHECK(res.S[0] >= res.S[1] && res.S[1] >= res.S[2] && res.S[2] >= 0.0);
+    check_matrix_near(res.reconstruct(), A);
+    CHECK(res.rank() == 3);
+    check_matrix_near(A * res.pseudoinverse(), Mat3<double>::identity());
+
+    // Tall 4x2 matrix
+    Matrix<double, 4, 2> Tall{{1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0}};
+    auto res_t = svd(Tall);
+    check_matrix_near(res_t.U.transpose() * res_t.U, Mat4<double>::identity());
+    check_matrix_near(res_t.V.transpose() * res_t.V, Mat2<double>::identity());
+    CHECK(res_t.S[0] >= res_t.S[1] && res_t.S[1] > 0.0);
+    check_matrix_near(res_t.reconstruct(), Tall);
+    check_matrix_near(res_t.pseudoinverse() * Tall, Mat2<double>::identity());
+
+    // Wide 2x4 matrix
+    Matrix<double, 2, 4> Wide = Tall.transpose();
+    auto res_w = svd(Wide);
+    check_matrix_near(res_w.U.transpose() * res_w.U, Mat2<double>::identity());
+    check_matrix_near(res_w.V.transpose() * res_w.V, Mat4<double>::identity());
+    CHECK(res_w.S[0] >= res_w.S[1] && res_w.S[1] > 0.0);
+    check_matrix_near(res_w.reconstruct(), Wide);
+    check_matrix_near(Wide * res_w.pseudoinverse(), Mat2<double>::identity());
+
+    // Rank-deficient 3x3 (rank 2)
+    Mat3<double> Rank2{{1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 5.0, 7.0, 9.0}};
+    auto res_r2 = svd(Rank2);
+    check_matrix_near(res_r2.U.transpose() * res_r2.U, Mat3<double>::identity());
+    check_matrix_near(res_r2.V.transpose() * res_r2.V, Mat3<double>::identity());
+    check_matrix_near(res_r2.reconstruct(), Rank2);
+    CHECK(res_r2.rank() == 2);
+    auto pinv2 = res_r2.pseudoinverse();
+    check_matrix_near(Rank2 * pinv2 * Rank2, Rank2);
+
+    // Zero 3x3 (rank 0)
+    Mat3<double> Z = Mat3<double>::zeros();
+    auto res_z = svd(Z);
+    check_matrix_near(res_z.U.transpose() * res_z.U, Mat3<double>::identity());
+    check_matrix_near(res_z.V.transpose() * res_z.V, Mat3<double>::identity());
+    check_matrix_near(res_z.reconstruct(), Z);
+    CHECK(res_z.rank() == 0);
+
+    // 1x1 negative scalar matrix
+    Matrix<double, 1, 1> M1{{-5.0}};
+    auto res_1 = svd(M1);
+    CHECK_NEAR(res_1.S[0], 5.0);
+    check_matrix_near(res_1.U.transpose() * res_1.U, Matrix<double, 1, 1>::identity());
+    check_matrix_near(res_1.V.transpose() * res_1.V, Matrix<double, 1, 1>::identity());
+    check_matrix_near(res_1.reconstruct(), M1);
+}
+
+// -----------------------------------------------------------------------------
 // MAIN
 // -----------------------------------------------------------------------------
 int main() {
@@ -332,6 +458,8 @@ int main() {
     RUN_TEST(test_tensor_elementwise);
     RUN_TEST(test_tensor_reshape_permute);
     RUN_TEST(test_tensor_outer_and_contract);
+    RUN_TEST(test_lu_decomposition);
+    RUN_TEST(test_svd_decomposition);
 
     if (g_failures != 0) {
         std::cout << '\n' << g_failures << " check(s) FAILED\n";
