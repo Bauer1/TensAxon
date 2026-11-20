@@ -17,7 +17,7 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
         )
     endif()
 elseif(MSVC)
-    target_compile_options(tensaxon_tests PRIVATE /W4 /WX /permissive-)
+    target_compile_options(tensaxon_tests PRIVATE /W4 /WX /permissive- /Zc:preprocessor)
 endif()
 
 # Register the binary with CTest.
