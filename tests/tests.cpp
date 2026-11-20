@@ -352,7 +352,8 @@ TEST_CASE(test_lu_decomposition) {
     for (std::size_t i = 0; i < 3; ++i) CHECK_NEAR((*x_lu)[i], (*x_direct)[i]);
 
     // 4x4 matrix
-    Mat4<double> A4{{2.0, 1.0, 1.0, 0.0, 4.0, 3.0, 3.0, 1.0, 8.0, 7.0, 9.0, 5.0, 6.0, 7.0, 9.0, 8.0}};
+    Mat4<double> A4{
+        {2.0, 1.0, 1.0, 0.0, 4.0, 3.0, 3.0, 1.0, 8.0, 7.0, 9.0, 5.0, 6.0, 7.0, 9.0, 8.0}};
     auto res4 = lu(A4);
     check_matrix_near(res4.P * A4, res4.L * res4.U);
     CHECK_NEAR(res4.determinant(), A4.determinant());
@@ -385,7 +386,9 @@ TEST_CASE(test_svd_decomposition) {
     auto res = svd(A);
     check_matrix_near(res.U.transpose() * res.U, Mat3<double>::identity());
     check_matrix_near(res.V.transpose() * res.V, Mat3<double>::identity());
-    CHECK(res.S[0] >= res.S[1] && res.S[1] >= res.S[2] && res.S[2] >= 0.0);
+    CHECK(res.S[0] >= res.S[1]);
+    CHECK(res.S[1] >= res.S[2]);
+    CHECK(res.S[2] >= 0.0);
     check_matrix_near(res.reconstruct(), A);
     CHECK(res.rank() == 3);
     check_matrix_near(A * res.pseudoinverse(), Mat3<double>::identity());
@@ -395,7 +398,8 @@ TEST_CASE(test_svd_decomposition) {
     auto res_t = svd(Tall);
     check_matrix_near(res_t.U.transpose() * res_t.U, Mat4<double>::identity());
     check_matrix_near(res_t.V.transpose() * res_t.V, Mat2<double>::identity());
-    CHECK(res_t.S[0] >= res_t.S[1] && res_t.S[1] > 0.0);
+    CHECK(res_t.S[0] >= res_t.S[1]);
+    CHECK(res_t.S[1] > 0.0);
     check_matrix_near(res_t.reconstruct(), Tall);
     check_matrix_near(res_t.pseudoinverse() * Tall, Mat2<double>::identity());
 
@@ -404,7 +408,8 @@ TEST_CASE(test_svd_decomposition) {
     auto res_w = svd(Wide);
     check_matrix_near(res_w.U.transpose() * res_w.U, Mat2<double>::identity());
     check_matrix_near(res_w.V.transpose() * res_w.V, Mat4<double>::identity());
-    CHECK(res_w.S[0] >= res_w.S[1] && res_w.S[1] > 0.0);
+    CHECK(res_w.S[0] >= res_w.S[1]);
+    CHECK(res_w.S[1] > 0.0);
     check_matrix_near(res_w.reconstruct(), Wide);
     check_matrix_near(Wide * res_w.pseudoinverse(), Mat2<double>::identity());
 

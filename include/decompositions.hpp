@@ -95,7 +95,7 @@ template <std::floating_point T, std::size_t Rows, std::size_t Cols>
         }
 
         if (p != i) {
-            work.swap_rows(i, p);
+            for (std::size_t c = i; c < Cols; ++c) std::swap(work(i, c), work(p, c));
             for (std::size_t c = 0; c < i; ++c) std::swap(L(i, c), L(p, c));
             std::swap(perm[i], perm[p]);
             sign = -sign;
@@ -257,8 +257,8 @@ template <std::floating_point T, std::size_t Rows, std::size_t Cols>
                     changed = true;
                     const T tau = (a_qq - a_pp) / (T{2} * a_pq);
                     const T abs_tau = detail::abs(tau);
-                    const T t = (tau >= T{0} ? T{1} : T{-1}) /
-                                (abs_tau + detail::sqrt(T{1} + tau * tau));
+                    const T t =
+                        (tau >= T{0} ? T{1} : T{-1}) / (abs_tau + detail::sqrt(T{1} + tau * tau));
                     const T c = T{1} / detail::sqrt(T{1} + t * t);
                     const T s = t * c;
 
@@ -299,7 +299,8 @@ template <std::floating_point T, std::size_t Rows, std::size_t Cols>
             }
         }
 
-        // Normalize non-zero columns of W into U; complete remaining columns if rank-deficient or tall.
+        // Normalize non-zero columns of W into U; complete remaining columns if rank-deficient or
+        // tall.
         Matrix<T, Rows, Rows> U{};
         const T zero_thresh =
             std::numeric_limits<T>::epsilon() * static_cast<T>(Rows) * (S[0] > T{1} ? S[0] : T{1});
